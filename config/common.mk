@@ -184,4 +184,10 @@ include vendor/hexagon/config/branding.mk
 # OTA
 include vendor/hexagon/config/ota.mk
 
+# GApps
+include vendor/hexagon/config/gapps.mk
+
+# Pixel Style
+include vendor/pixelstyle/config.mk
+
 -include $(WORKSPACE)/build_env/image-auto-bits.mk
