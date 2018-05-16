@@ -5,7 +5,6 @@ Additional functions:
 - mmp:             Builds all of the modules in the current directory and pushes them to the device.
 - mmap:            Builds all of the modules in the current directory and its dependencies, then pushes the package to the device.
 - mmmp:            Builds all of the modules in the supplied directories and pushes them to the device.
-- hexagonremote:      Add git remote for matching hexagon repository.
 - cafremote:       Add git remote for matching CodeAurora repository.
 - mka:             Builds using SCHED_BATCH on all processors.
 - mkap:            Builds the module(s) using mka and pushes them to the device.
@@ -252,31 +251,7 @@ function dddclient()
    fi
 }
 
-function hexagonremote()
-{
-    if ! git rev-parse --git-dir &> /dev/null
-    then
-        echo ".git directory not found. Please run this from the root directory of the Android repository you wish to set up."
-        return 1
-    fi
-    git remote rm hexagon 2> /dev/null
-    local GERRIT_REMOTE=$(git config --get remote.github.projectname)
-    if [ -z "$GERRIT_REMOTE" ]
-    then
-        local GERRIT_REMOTE=$(git config --get remote.hexagon.projectname | sed s#platform/#android/#g | sed s#/#_#g)
-        local PFX="hexagon/"
-    fi
-    local GERRIT_USER=$(git config --get review.review.hexagon.org.username)
-    if [ -z "$GERRIT_USER" ]
-    then
-        git remote add hexagon ssh://review.hexagon.org:29418/$PFX$GERRIT_REMOTE
-    else
-        git remote add hexagon ssh://$GERRIT_USER@review.hexagon.org:29418/$PFX$GERRIT_REMOTE
-    fi
-    echo "Remote 'hexagon' created"
-}
-
-function hexagonremote()
+function aospremote()
 {
     if ! git rev-parse --git-dir &> /dev/null
     then
@@ -414,28 +389,6 @@ function installrecovery()
     fi
 }
 
-function makerecipe() {
-    if [ -z "$1" ]
-    then
-        echo "No branch name provided."
-        return 1
-    fi
-    cd android
-    sed -i s/'default revision=.*'/'default revision="refs\/heads\/'$1'"'/ default.xml
-    git commit -a -m "$1"
-    cd ..
-
-    repo forall -c '
-
-    if [ "$REPO_REMOTE" = "github" ]
-    then
-        pwd
-        hexagonremote
-        git push hexagon HEAD:refs/heads/'$1'
-    fi
-    '
-}
-
 function hexagongerrit() {
     if [ "$(__detect_shell)" = "zsh" ]; then
         # zsh does not define FUNCNAME, derive from funcstack
@@ -446,9 +399,9 @@ function hexagongerrit() {
         $FUNCNAME help
         return 1
     fi
-    local user=`git config --get review.review.hexagon.org.username`
-    local review=`git config --get remote.github.review`
-    local project=`git config --get remote.github.projectname`
+    local user=`git config --get review.gerrit.hexagonrom.org.username`
+    local review=`git config --get remote.hexagon.review`
+    local project=`git config --get remote.hexagon.projectname`
     local command=$1
     shift
     case $command in
@@ -703,7 +656,7 @@ function hexagonrebase() {
     echo "Bringing it up to date..."
     repo sync .
     echo "Fetching change..."
-    git fetch "http://review.hexagon.org/p/$repo" "refs/changes/$refs" && git cherry-pick FETCH_HEAD
+    git fetch "http://gerrit.hexagonrom.org/p/$repo" "refs/changes/$refs" && git cherry-pick FETCH_HEAD
     if [ "$?" != "0" ]; then
         echo "Error cherry-picking. Not uploading!"
         return
